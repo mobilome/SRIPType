@@ -42,8 +42,8 @@ def add_arguments(parser):
     parser.add_argument(
         "--min-rate",
         type=float,
-        default=0.25,
-        help="Minimum non-NA rate to retain a site (default: 0.25)",
+        default=0,
+        help="Maximum NA rate per site; sites with NA/total >= this value are excluded from the merged matrix (default: 0, no filtering)",
     )
 
 
@@ -184,25 +184,17 @@ def run(args):
     logger.info("Merged %d loci x %d samples", total_loci, num_individuals)
 
     # ---- Filter and compute stats ----
-    min_non_na = int(min_rate * num_individuals)
     sample_start = 5
     sample_end = sample_start + num_individuals
 
+    all_site_stats = []
+    all_sample_non_na_counts = [0] * num_individuals
+
     filtered_rows = []
-    site_stats = []
-    sample_non_na_counts = [0] * num_individuals
-    total_na_entries = 0
-    all_plus_sites = 0
-    all_minus_sites = 0
-    all_pm_sites = 0
+    filtered_sample_non_na_counts = [0] * num_individuals
 
     for row in data_rows:
         genotypes = row[sample_start:sample_end]
-        non_na_count = sum(1 for gt in genotypes if gt != "NA")
-        if non_na_count < min_non_na:
-            continue
-
-        filtered_rows.append(row)
 
         count_pp = genotypes.count("++")
         count_pm = genotypes.count("+-")
@@ -224,25 +216,11 @@ def run(args):
         else:
             perc_plus = perc_minus = 0.0
 
-        total_na_entries += count_na
-
-        non_na_gts = [gt for gt in genotypes if gt != "NA"]
-        is_all_plus = all(gt == "++" for gt in non_na_gts) if non_na_gts else False
-        is_all_minus = all(gt == "--" for gt in non_na_gts) if non_na_gts else False
-        is_all_pm = all(gt == "+-" for gt in non_na_gts) if non_na_gts else False
-
-        if is_all_plus:
-            all_plus_sites += 1
-        if is_all_minus:
-            all_minus_sites += 1
-        if is_all_pm:
-            all_pm_sites += 1
-
         for idx, gt in enumerate(genotypes):
             if gt != "NA":
-                sample_non_na_counts[idx] += 1
+                all_sample_non_na_counts[idx] += 1
 
-        site_stats.append({
+        stat = {
             "base_info": row[:5],
             "count_pp": count_pp,
             "count_pm": count_pm,
@@ -256,17 +234,29 @@ def run(args):
             "minus_alleles": minus_alleles,
             "perc_plus": perc_plus,
             "perc_minus": perc_minus,
-        })
+        }
+        all_site_stats.append(stat)
+
+        # Apply filtering for merged matrix
+        if min_rate > 0 and count_na / num_individuals >= min_rate:
+            continue
+        filtered_rows.append(row)
+        for idx, gt in enumerate(genotypes):
+            if gt != "NA":
+                filtered_sample_non_na_counts[idx] += 1
 
     total_retained = len(filtered_rows)
-    logger.info(
-        "Filtered: %d / %d sites retained (min non-NA rate: %.0f%%)",
-        total_retained, total_loci, min_rate * 100,
-    )
+    if min_rate > 0:
+        logger.info(
+            "Filtered: %d / %d sites retained (NA rate < %.0f%%)",
+            total_retained, total_loci, min_rate * 100,
+        )
+    else:
+        logger.info("All %d sites included (no filtering)", total_loci)
 
     # ---- Write merged genotype matrix ----
     header1 = base_fields + valid_file_names
-    header2 = [""] * 5 + [str(c) for c in sample_non_na_counts]
+    header2 = ["" ] * 5 + [str(c) for c in filtered_sample_non_na_counts]
 
     with open(output_file, "w") as fout:
         fout.write("\t".join(header1) + "\n")
@@ -276,7 +266,7 @@ def run(args):
 
     logger.info("Wrote merged matrix: %s", output_file)
 
-    # ---- Write summary statistics ----
+    # ---- Write summary statistics (all sites, unfiltered) ----
     summary_header = base_fields + [
         "++", "+-", "--", "NA", "++%", "+-%", "--%", "NA%",
         "+", "-", "+%", "-%",
@@ -284,7 +274,7 @@ def run(args):
 
     with open(summary_file, "w") as fsum:
         fsum.write("\t".join(summary_header) + "\n")
-        for stat in site_stats:
+        for stat in all_site_stats:
             parts = stat["base_info"] + [
                 str(stat["count_pp"]), str(stat["count_pm"]),
                 str(stat["count_mm"]), str(stat["count_na"]),
@@ -298,23 +288,17 @@ def run(args):
     logger.info("Wrote summary: %s", summary_file)
 
     # ---- Write report ----
-    max_s = max(sample_non_na_counts) if sample_non_na_counts else 0
-    min_s = min(sample_non_na_counts) if sample_non_na_counts else 0
-    median_s = _median(sample_non_na_counts)
-    mean_s = _mean(sample_non_na_counts)
-    total_entries = total_retained * num_individuals
-    na_rate = (total_na_entries / total_entries * 100) if total_entries else 0.0
+    max_s = max(all_sample_non_na_counts) if all_sample_non_na_counts else 0
+    min_s = min(all_sample_non_na_counts) if all_sample_non_na_counts else 0
+    median_s = _median(all_sample_non_na_counts)
+    mean_s = _mean(all_sample_non_na_counts)
 
     with open(report_file, "w") as frpt:
         frpt.write("# SRIPType Merge Summary Report\n\n")
         frpt.write(f"Total samples\t{num_individuals}\n")
         frpt.write(f"Initial loci\t{total_loci}\n")
-        frpt.write(f"Retained loci (min non-NA rate >= {min_rate:.0%})\t{total_retained}\n")
-        frpt.write(f"All ++ sites\t{all_plus_sites}\n")
-        frpt.write(f"All +- sites\t{all_pm_sites}\n")
-        frpt.write(f"All -- sites\t{all_minus_sites}\n")
-        frpt.write(f"Total NA entries\t{total_na_entries}\n")
-        frpt.write(f"Overall NA rate\t{na_rate:.2f}%\n")
+        if min_rate > 0:
+            frpt.write(f"Loci with NA rate < {min_rate:.0%} (retained)\t{total_retained}\n")
         frpt.write(f"Max successfully genotyped loci per sample\t{max_s}\n")
         frpt.write(f"Min successfully genotyped loci per sample\t{min_s}\n")
         frpt.write(f"Median successfully genotyped loci per sample\t{median_s:.2f}\n")
@@ -327,12 +311,10 @@ def run(args):
     logger.info("Summary:")
     logger.info("  Total samples:              %d", num_individuals)
     logger.info("  Initial loci:               %d", total_loci)
-    logger.info("  Retained loci:              %d (%.2f%%)",
-                total_retained, total_retained / total_loci * 100 if total_loci else 0)
-    logger.info("  All ++ sites:               %d", all_plus_sites)
-    logger.info("  All +- sites:               %d", all_pm_sites)
-    logger.info("  All -- sites:               %d", all_minus_sites)
-    logger.info("  Total NA entries:           %d (%.2f%%)", total_na_entries, na_rate)
+    if min_rate > 0:
+        logger.info("  Retained loci (NA rate < %.0f%%): %d (%.2f%%)",
+                    min_rate * 100, total_retained,
+                    total_retained / total_loci * 100 if total_loci else 0)
     logger.info("  Max genotyped loci/sample:  %d", max_s)
     logger.info("  Min genotyped loci/sample:  %d", min_s)
     logger.info("  Median genotyped loci/sample: %.2f", median_s)

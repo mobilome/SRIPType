@@ -282,7 +282,7 @@ def _run_pipeline(sample, cfg):
         subprocess.run([
             "blastn",
             "-query", cfg["query_fasta"],
-            "-db", os.path.join(cfg["mkdb_dir"], sample),
+            "-db", os.path.join(cfg["mkdb_dir"], sample, sample),
             "-dust", "no",
             "-max_target_seqs", "10000000",
             "-max_hsps", "1",
@@ -316,7 +316,7 @@ def _run_pipeline(sample, cfg):
         subprocess.run([
             "bedtools", "flank",
             "-s", "-l", "0", "-r", "70",
-            "-g", os.path.join(cfg["mkdb_dir"], f"{sample}.fasta.fai"),
+            "-g", os.path.join(cfg["mkdb_dir"], sample, f"{sample}.fasta.fai"),
             "-i", os.path.join(pfx, f"3-ripL5l50-{sample}-u.bed"),
         ], check=True, stdout=open(os.path.join(pfx, f"4-ripL5l50-{sample}-u-r70.bed"), "w"),
            stderr=subprocess.PIPE)
@@ -335,7 +335,7 @@ def _run_pipeline(sample, cfg):
         subprocess.run([
             "bedtools", "getfasta",
             "-s",
-            "-fi", os.path.join(cfg["mkdb_dir"], f"{sample}.fasta"),
+            "-fi", os.path.join(cfg["mkdb_dir"], sample, f"{sample}.fasta"),
             "-bed", os.path.join(pfx, f"5-ripL5l50-{sample}-u-r70-above30.bed"),
             "-fo", os.path.join(pfx, f"5-ripL5l50-{sample}-u-r70-above30.fasta"),
         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -390,7 +390,7 @@ def _run_pipeline(sample, cfg):
         subprocess.run([
             "bedtools", "flank",
             "-s", "-l", "0", "-r", "100",
-            "-g", os.path.join(cfg["mkdb_dir"], f"{sample}.fasta.fai"),
+            "-g", os.path.join(cfg["mkdb_dir"], sample, f"{sample}.fasta.fai"),
             "-i", os.path.join(pfx, f"8-ripL5l50-{sample}-noin.bed"),
         ], check=True, stdout=open(os.path.join(pfx, f"9-ripL5l50-{sample}-noin-r100.bed"), "w"),
            stderr=subprocess.PIPE)
@@ -409,7 +409,7 @@ def _run_pipeline(sample, cfg):
         subprocess.run([
             "bedtools", "getfasta",
             "-s",
-            "-fi", os.path.join(cfg["mkdb_dir"], f"{sample}.fasta"),
+            "-fi", os.path.join(cfg["mkdb_dir"], sample, f"{sample}.fasta"),
             "-bed", os.path.join(pfx, f"10-ripL5l50-{sample}-noin-r100-above50.bed"),
             "-fo", os.path.join(pfx, f"10-ripL5l50-{sample}-noin-r100-above50.fasta"),
         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -460,6 +460,9 @@ def _run_pipeline(sample, cfg):
         # Move final result to main output directory
         shutil.move(os.path.join(pfx, result_file), final_result_path)
 
+        # Clean up intermediate and log files
+        shutil.rmtree(sample_dir, ignore_errors=True)
+
         elapsed = time.time() - start_time
         sample_logger.info(
             "Sample %s completed successfully in %.2f seconds -> %s",
@@ -491,16 +494,17 @@ def run(args):
     if not os.path.isdir(mkdb_dir):
         raise FileNotFoundError(f"mkdb output directory not found: {mkdb_dir}")
 
-    sample_list_file = os.path.join(mkdb_dir, "sample_list.txt")
-    if not os.path.isfile(sample_list_file):
+    # Auto-discover samples from subdirectories containing <sample>.fasta
+    samples = sorted(
+        d for d in os.listdir(mkdb_dir)
+        if os.path.isdir(os.path.join(mkdb_dir, d))
+        and os.path.isfile(os.path.join(mkdb_dir, d, f"{d}.fasta"))
+    )
+    if not samples:
         raise FileNotFoundError(
-            f"sample_list.txt not found in {mkdb_dir}. "
+            f"No sample subdirectories found in {mkdb_dir}. "
             "Please run 'sriptype mkdb' first."
         )
-    with open(sample_list_file) as fh:
-        samples = [line.strip() for line in fh if line.strip()]
-    if not samples:
-        raise ValueError(f"No samples found in {sample_list_file}")
 
     output_dir = os.path.abspath(args.output_dir)
     os.makedirs(output_dir, exist_ok=True)

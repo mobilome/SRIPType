@@ -5,9 +5,8 @@ Paired-end sequencing data processing and BLAST database construction pipeline:
   2. Merge FLASH output files (extendedFrags + notCombined)
   3. Convert merged FASTQ to FASTA with renamed headers
   4. Clean up intermediate files
-  5. Extract sample IDs
-  6. Build BLAST databases
-  7. Compute sequence length statistics
+  5. Build BLAST databases
+  6. Compute sequence length statistics
 """
 
 import glob
@@ -367,27 +366,29 @@ def run(args):
     _check_tools(required_tools)
 
     # Step 1: FLASH merge
-    logger.debug("Step 1/7: FLASH merging paired-end reads...")
-    flash_tasks = [
-        (prefix, r1_sfx, r2_sfx, main_output, threads)
-        for prefix, r1_sfx, r2_sfx in samples
-    ]
+    logger.debug("Step 1/6: FLASH merging paired-end reads...")
+    flash_tasks = []
+    for prefix, r1_sfx, r2_sfx in samples:
+        sample = os.path.basename(prefix)
+        sample_dir = os.path.join(main_output, sample)
+        os.makedirs(sample_dir, exist_ok=True)
+        flash_tasks.append((prefix, r1_sfx, r2_sfx, sample_dir, threads))
     _run_parallel(_worker_flash, flash_tasks, jobs, "FLASH merge")
 
     # Step 2: Merge FLASH output files
-    logger.debug("Step 2/7: Merging FLASH output files...")
-    frag_files = sorted(glob.glob(os.path.join(main_output, "*.extendedFrags.fastq")))
+    logger.debug("Step 2/6: Merging FLASH output files...")
+    frag_files = sorted(glob.glob(os.path.join(main_output, "*", "*.extendedFrags.fastq")))
     merge_prefixes = [f[: -len(".extendedFrags.fastq")] for f in frag_files]
     _run_parallel(_worker_merge, merge_prefixes, jobs, "File merge")
 
     # Step 3: Convert to FASTA
-    logger.debug("Step 3/7: Converting FASTQ to FASTA...")
-    merged_files = sorted(glob.glob(os.path.join(main_output, "*.merged.fastq")))
+    logger.debug("Step 3/6: Converting FASTQ to FASTA...")
+    merged_files = sorted(glob.glob(os.path.join(main_output, "*", "*.merged.fastq")))
     convert_prefixes = [f[: -len(".merged.fastq")] for f in merged_files]
     _run_parallel(_worker_convert, convert_prefixes, jobs, "FASTQ to FASTA")
 
     # Step 4: Clean intermediate files
-    logger.debug("Step 4/7: Cleaning intermediate files...")
+    logger.debug("Step 4/6: Cleaning intermediate files...")
     patterns = [
         "*.extendedFrags.fastq",
         "*.notCombined_1.fastq",
@@ -398,7 +399,7 @@ def run(args):
     ]
     removed = 0
     for pat in patterns:
-        for f in glob.glob(os.path.join(main_output, pat)):
+        for f in glob.glob(os.path.join(main_output, "*", pat)):
             os.remove(f)
             removed += 1
     logger.debug("  Removed %d intermediate file(s)", removed)
@@ -409,42 +410,32 @@ def run(args):
     _check_tools(["makeblastdb", "samtools"])
 
     # Find FASTA files
-    fasta_files = sorted(glob.glob(os.path.join(main_output, "*.fasta")))
+    fasta_files = sorted(glob.glob(os.path.join(main_output, "*", "*.fasta")))
     if not fasta_files:
         raise FileNotFoundError(
             f"No *.fasta files found in {main_output}. "
             "Ensure FLASH processing was completed first."
         )
 
-    # Step 5: Extract sample IDs
-    logger.debug("Step 5/7: Extracting sample IDs...")
-    sample_id_file = os.path.join(main_output, "sample_list.txt")
-    sample_names = [
-        os.path.basename(f).replace(".fasta", "") for f in fasta_files
-    ]
-    with open(sample_id_file, "w") as fh:
-        fh.write("\n".join(sample_names) + "\n")
-    logger.debug("  Wrote %d sample ID(s) to %s", len(sample_names), sample_id_file)
-
-    # Step 6: Build BLAST databases
-    logger.debug("Step 6/7: Building BLAST databases...")
-    blast_tasks = [(f, main_output) for f in fasta_files]
+    # Step 5: Build BLAST databases
+    logger.debug("Step 5/6: Building BLAST databases...")
+    blast_tasks = [(f, os.path.dirname(f)) for f in fasta_files]
     _run_parallel(_worker_makeblastdb, blast_tasks, jobs, "BLAST DB build")
 
-    # Step 7: Sequence length statistics
-    logger.debug("Step 7/7: Computing sequence length statistics...")
-    stats_tasks = [(f, main_output) for f in fasta_files]
+    # Step 6: Sequence length statistics
+    logger.debug("Step 6/6: Computing sequence length statistics...")
+    stats_tasks = [(f, os.path.dirname(f)) for f in fasta_files]
     _run_parallel(_worker_seq_stats, stats_tasks, jobs, "Sequence stats")
 
     # Final report
     n_fasta = len(fasta_files)
-    n_blastdb = len(glob.glob(os.path.join(main_output, "*.n*")))
-    n_stats = len(glob.glob(os.path.join(main_output, "*.fasta.fai")))
+    n_blastdb = len(glob.glob(os.path.join(main_output, "*", "*.n*")))
+    n_stats = len(glob.glob(os.path.join(main_output, "*", "*.fasta.fai")))
 
     logger.info("make database completed successfully!")
     logger.info("Output directory: %s", main_output)
     logger.info("Summary:")
-    logger.info("  - Samples processed: %d", len(sample_names))
+    logger.info("  - Samples processed: %d", n_fasta)
     logger.info("  - FASTA files:       %d", n_fasta)
     logger.info("  - BLAST DB files:    %d", n_blastdb)
     logger.info("  - Stats files:       %d", n_stats)
