@@ -13,5 +13,4 @@ setup(
             "sriptype=sriptype_modules.cli:main",
         ],
     },
-    scripts=["sriptype"],
 )

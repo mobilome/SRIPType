@@ -22,6 +22,12 @@ requirements:
     - setuptools
   run:
     - python >=3.8
+    - flash
+    - pigz
+    - seqkit
+    - blast
+    - bedtools
+    - samtools
 
 test:
   commands:
