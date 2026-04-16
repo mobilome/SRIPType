@@ -1,131 +1,130 @@
 # SRIPType
 
-A bioinformatics toolkit for sequence typing and analysis.
+A bioinformatics tool for 51k-SINE-RIP chip genotyping.
+
+## Dependencies
+
+SRIPType requires the following external tools to be installed and available in `PATH`:
+
+- [FLASh](https://ccb.jhu.edu/software/FLASH/) — paired-end read merging
+- [pigz](https://zlib.net/pigz/) — parallel gzip compression/decompression
+- [SeqKit](https://bioinf.shenwei.me/seqkit/) — FASTA/FASTQ manipulation
+- [BLAST+](https://blast.ncbi.nlm.nih.gov/doc/blast-help/) — sequence alignment (`blastn`, `makeblastdb`)
+- [BEDTools](https://bedtools.readthedocs.io/) — genomic interval operations
+- [SAMtools](http://www.htslib.org/) — FASTA indexing (`samtools faidx`)
 
 ## Installation
 
-### Method 1: Direct execution (clone and run)
+### Conda (recommended)
 
 ```bash
-git clone https://github.com/your-org/SRIPType.git
-cd SRIPType
-
-# Run via absolute path
-/path/to/SRIPType/sriptype --help
-
-# Or add to PATH
-export PATH=/path/to/SRIPType:$PATH
-sriptype --help
+conda install -c bioconda sriptype
 ```
 
-### Method 2: pip install
+### pip
 
 ```bash
-git clone https://github.com/your-org/SRIPType.git
+pip install sriptype
+```
+
+> **Note:** pip only installs SRIPType itself; the external tools listed above must be installed separately. Installing via Conda handles all dependencies automatically.
+
+### From source
+
+```bash
+git clone https://github.com/mobilome/SRIPType.git
 cd SRIPType
 pip install .
-
-sriptype --help
 ```
 
-### Method 3: Docker
+### Docker
 
 ```bash
-# Build
 docker build -t sriptype .
-
-# Run
-docker run --rm -v $(pwd):/data sriptype example -i /data/input.fasta -o /data/output.txt -t 4
+docker run --rm -v $(pwd):/data sriptype mkdb -i /data/input_dir -o /data/blast_db -j 4 -t 4
 ```
 
-### Method 4: Conda (coming soon)
+## Quick start
 
 ```bash
-conda install -c your-channel sriptype
+# Step 1: Build BLAST databases from paired-end data
+sriptype mkdb -i raw_data/ -o blast_db/ -j 4 -t 4
+
+# Step 2: Run genotyping analysis
+sriptype genotype -i blast_db/ -o genotype_results/ -j 4 -t 4
+
+# Step 3: Merge per-sample results into a summary matrix
+sriptype merge -i genotype_results/ -o merged_output/
 ```
 
 ## Usage
 
-```bash
-# Show help
-sriptype --help
-
-# Show version
-sriptype --version
-
-# Run a subcommand
-sriptype example -i input.fasta -o output.txt -t 4
+```
+sriptype [-v] <subcommand> [options]
 ```
 
-### Global options
-
-| Option | Description |
-|--------|-------------|
-| `-v, --version` | Show version and exit |
-| `-t, --threads INT` | Number of threads (default: 1) |
-| `--verbose` | Enable verbose output |
-
-### Available subcommands
+### Subcommands
 
 | Subcommand | Description |
 |------------|-------------|
-| `example` | Example subcommand (template) |
+| `mkdb` | Paired-end data processing and BLAST database construction |
+| `genotype` | RIP-seq genotyping analysis pipeline |
+| `merge` | Merge per-sample genotype results and generate summary statistics |
 
-## Adding a new subcommand
+### `mkdb` — Build BLAST databases
 
-1. Create a new Python file in `sriptype_modules/subcommands/`, e.g. `mycommand.py`
-2. Define the following in the module:
+Process paired-end FASTQ files and create per-sample BLAST databases.
 
-```python
-"""My new subcommand."""
-
-from sriptype_modules.utils import check_file_exists, ensure_output_dir, setup_logger
-
-logger = setup_logger(__name__)
-
-DESCRIPTION = "Description of my subcommand"
-
-
-def add_arguments(parser):
-    """Add subcommand-specific arguments."""
-    parser.add_argument("-i", "--input", required=True, help="Input file")
-    parser.add_argument("-o", "--output", required=True, help="Output file")
-
-
-def run(args):
-    """Execute the subcommand."""
-    input_file = check_file_exists(args.input)
-    output_file = ensure_output_dir(args.output)
-    threads = args.threads
-
-    # Your logic here
-    logger.info("Done!")
+```bash
+sriptype mkdb -i <input_dir> -o <output_dir> -j <jobs> -t <threads>
 ```
 
-3. The subcommand will be automatically discovered and available as `sriptype mycommand`.
+| Option | Description |
+|--------|-------------|
+| `-i, --input-dir` | Directory containing paired-end `.R1.fq.gz` / `.R2.fq.gz` files (**required**) |
+| `-o, --output-dir` | Output directory (default: `<input-dir>/../blast_db`) |
+| `-j, --jobs INT` | Number of parallel jobs (default: 1) |
+| `-t, --threads INT` | Number of threads per job (default: 1) |
+| `--verbose` | Enable verbose output |
 
-## Project Structure
+### `genotype` — Genotyping analysis
 
+Run the RIP-seq genotyping pipeline on each sample.
+
+```bash
+sriptype genotype -i <mkdb_dir> -o <output_dir> -j <jobs> -t <threads>
 ```
-SRIPType/
-├── sriptype                      # Executable entry point
-├── sriptype_modules/             # Core Python package
-│   ├── __init__.py               # Version info
-│   ├── cli.py                    # CLI argument parsing
-│   ├── core.py                   # Core shared logic
-│   ├── utils.py                  # Utility functions
-│   └── subcommands/              # Subcommand modules
-│       ├── __init__.py
-│       └── example.py            # Example/template subcommand
-├── tests/                        # Test directory
-├── setup.py                      # Package setup
-├── pyproject.toml                # Modern Python packaging config
-├── requirements.txt              # Dependencies
-├── Dockerfile                    # Docker build file
-├── conda/meta.yaml               # Conda recipe
-├── LICENSE
-└── README.md
+
+| Option | Description |
+|--------|-------------|
+| `-i, --mkdb-dir` | Directory produced by `sriptype mkdb` (**required**) |
+| `-o, --output-dir` | Output directory for results (**required**) |
+| `-j, --jobs INT` | Number of samples to process in parallel (default: 1) |
+| `-t, --threads INT` | Number of threads per sample (default: 1) |
+| `--verbose` | Enable verbose output |
+
+### `merge` — Merge results
+
+Merge per-sample genotype results into a unified matrix with summary statistics.
+
+```bash
+sriptype merge -i <input_dir> -o <output_dir> [--min-rate FLOAT]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-i, --input-dir` | Directory containing `*_genetype_result.tsv` files (**required**) |
+| `-o, --output-dir` | Output directory for merged results (**required**) |
+| `--min-rate FLOAT` | Max NA rate per site; sites with NA/total ≥ this value are excluded (default: 0, no filtering) |
+| `--verbose` | Enable verbose output |
+
+Output files:
+
+| File | Description |
+|------|-------------|
+| `merged_genotype.tsv` | Merged genotype matrix (filtered by `--min-rate`) |
+| `merged_genotype_sum.tsv` | Per-site summary statistics (all sites, unfiltered) |
+| `merged_genotype_report.txt` | Run summary report |
 
 ## License
 

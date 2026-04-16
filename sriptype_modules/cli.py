@@ -31,7 +31,8 @@ def build_parser():
         epilog=(
             "Examples:\n"
             "  sriptype mkdb -i input_dir -o blast_db -j 4 -t 4\n"
-            "  sriptype genotype -i blast_db -o genotype_output -j 4 -t 4\n"
+            "  sriptype genotype -i blast_db -o enotype_results -j 4 -t 4\n"
+            "  sriptype merge -i genotype_results -o merge_results\n"
             "\n"
             "Use 'sriptype <subcommand> -h' for subcommand-specific help.\n"
         ),
