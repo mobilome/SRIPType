@@ -28,7 +28,7 @@ import traceback
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from sriptype_modules.utils import setup_logger
+from scgt_modules.utils import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -48,7 +48,7 @@ def add_arguments(parser):
     parser.add_argument(
         "-i", "--mkdb-dir",
         required=True,
-        help="Directory produced by 'sriptype mkdb' (contains FASTA, BLAST DB, and stats files)",
+        help="Directory produced by 'scgt mkdb' (contains FASTA, BLAST DB, and stats files)",
     )
 
     # Output
@@ -503,7 +503,7 @@ def run(args):
     if not samples:
         raise FileNotFoundError(
             f"No sample subdirectories found in {mkdb_dir}. "
-            "Please run 'sriptype mkdb' first."
+            "Please run 'scgt mkdb' first."
         )
 
     output_dir = os.path.abspath(args.output_dir)

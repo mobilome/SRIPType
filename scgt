@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+"""scgt - SINE-RIP chip genotyper. Entry point script.
+
+This script can be run directly:
+  1. Via absolute path:  /path/to/scgt/scgt
+  2. Via PATH:           export PATH=/path/to/scgt:$PATH && scgt
+  3. Via pip install:    pip install . && scgt
+"""
+
+import os
+import sys
+
+# Ensure the project root is in sys.path so scgt_modules can be imported
+# This allows running the script directly without installation
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+from scgt_modules.cli import main
+
+if __name__ == "__main__":
+    main()

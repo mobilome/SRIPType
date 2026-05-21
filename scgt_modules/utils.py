@@ -1,11 +1,11 @@
-"""Common utility functions for SRIPType."""
+"""Common utility functions for scgt."""
 
 import logging
 import os
 import sys
 
 
-def setup_logger(name="sriptype", level=logging.INFO):
+def setup_logger(name="scgt", level=logging.INFO):
     """Set up and return a logger instance."""
     logger = logging.getLogger(name)
     if not logger.handlers:

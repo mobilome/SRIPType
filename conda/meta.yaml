@@ -1,4 +1,4 @@
-{% set name = "sriptype" %}
+{% set name = "scgt" %}
 {% set version = "0.1.0" %}
 
 package:
@@ -14,7 +14,7 @@ build:
   noarch: python
   script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
   entry_points:
-    - sriptype = sriptype_modules.cli:main
+    - scgt = scgt_modules.cli:main
 
 requirements:
   host:
@@ -32,10 +32,10 @@ requirements:
 
 test:
   commands:
-    - sriptype --help
+    - scgt --help
 
 about:
-  home: https://github.com/your-org/SRIPType
+  home: https://github.com/mobilome/scgt
   license: MIT
   license_file: LICENSE
-  summary: SRIPType - 51k-SINE-RIP chip genotyping tool
+  summary: scgt - 51k-SINE-RIP chip genotyper

@@ -1,6 +1,6 @@
-"""Core logic and shared processing for SRIPType."""
+"""Core logic and shared processing for scgt."""
 
-from sriptype_modules.utils import setup_logger
+from scgt_modules.utils import setup_logger
 
 logger = setup_logger(__name__)
 

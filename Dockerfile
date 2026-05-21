@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
-LABEL maintainer="SRIPType Team"
-LABEL description="SRIPType - A bioinformatics toolkit for sequence typing and analysis"
+LABEL maintainer="Mobilome Team"
+LABEL description="scgt - SINE-RIP chip genotyper, a bioinformatics toolkit for 51k-SINE-RIP chip genotyping"
 
 # Install system dependencies
 RUN apt-get update && \
@@ -10,20 +10,20 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
-WORKDIR /opt/sriptype
+WORKDIR /opt/scgt
 
 # Copy project files
 COPY . .
 
-# Install SRIPType
+# Install scgt
 RUN pip install --no-cache-dir . && \
-    chmod +x sriptype
+    chmod +x scgt
 
 # Add to PATH
-ENV PATH="/opt/sriptype:${PATH}"
+ENV PATH="/opt/scgt:${PATH}"
 
 # Default working directory for data
 WORKDIR /data
 
-ENTRYPOINT ["sriptype"]
+ENTRYPOINT ["scgt"]
 CMD ["--help"]

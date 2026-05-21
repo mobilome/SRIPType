@@ -1,4 +1,4 @@
-# SRIPType dependencies
+# scgt dependencies
 # Add your project dependencies here, one per line
 # Example:
 # biopython>=1.80

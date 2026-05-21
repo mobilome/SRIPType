@@ -1,12 +1,12 @@
-"""CLI argument parsing for SRIPType."""
+"""CLI argument parsing for scgt."""
 
 import argparse
 import importlib
 import pkgutil
 import sys
 
-from sriptype_modules import __version__
-import sriptype_modules.subcommands as subcommands_pkg
+from scgt_modules import __version__
+import scgt_modules.subcommands as subcommands_pkg
 
 
 def discover_subcommands():
@@ -16,7 +16,7 @@ def discover_subcommands():
     for importer, modname, ispkg in pkgutil.iter_modules(package_path):
         if modname.startswith("_"):
             continue
-        module = importlib.import_module(f"sriptype_modules.subcommands.{modname}")
+        module = importlib.import_module(f"scgt_modules.subcommands.{modname}")
         if hasattr(module, "add_arguments") and hasattr(module, "run"):
             subcommands[modname] = module
     return subcommands
@@ -25,16 +25,16 @@ def discover_subcommands():
 def build_parser():
     """Build the main argument parser with all subcommands."""
     parser = argparse.ArgumentParser(
-        prog="sriptype",
-        description="SRIPType - A bioinformatics tool for 51k-SINE-RIP chip genotyping",
+        prog="scgt",
+        description="scgt - SINE-RIP chip genotyper, a bioinformatics tool for 51k-SINE-RIP chip genotyping",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  sriptype mkdb -i input_dir -o blast_db -j 4 -t 4\n"
-            "  sriptype genotype -i blast_db -o genotype_results -j 4 -t 4\n"
-            "  sriptype merge -i genotype_results -o merge_results\n"
+            "  scgt mkdb -i input_dir -o blast_db -j 4 -t 4\n"
+            "  scgt genotype -i blast_db -o genotype_results -j 4 -t 4\n"
+            "  scgt merge -i genotype_results -o merge_results\n"
             "\n"
-            "Use 'sriptype <subcommand> -h' for subcommand-specific help.\n"
+            "Use 'scgt <subcommand> -h' for subcommand-specific help.\n"
         ),
     )
     parser.add_argument(
@@ -100,10 +100,10 @@ def main():
     if args.verbose:
         import logging
         logging.getLogger().setLevel(logging.DEBUG)
-        # Also update all sriptype_modules loggers so their own level
+        # Also update all scgt_modules loggers so their own level
         # check doesn't filter out DEBUG messages
         for name in list(logging.Logger.manager.loggerDict):
-            if name.startswith("sriptype_modules"):
+            if name.startswith("scgt_modules"):
                 logging.getLogger(name).setLevel(logging.DEBUG)
 
     try:

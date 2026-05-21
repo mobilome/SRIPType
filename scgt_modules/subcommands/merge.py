@@ -15,7 +15,7 @@ import math
 import os
 from collections import defaultdict
 
-from sriptype_modules.utils import setup_logger
+from scgt_modules.utils import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -32,7 +32,7 @@ def add_arguments(parser):
     parser.add_argument(
         "-i", "--input-dir",
         required=True,
-        help="Directory containing *_genetype_result.tsv files (output of 'sriptype genotype')",
+        help="Directory containing *_genetype_result.tsv files (output of 'scgt genotype')",
     )
     parser.add_argument(
         "-o", "--output-dir",
@@ -139,7 +139,7 @@ def run(args):
     if not file_names:
         raise FileNotFoundError(
             f"No genotype result files found in {input_dir}. "
-            "Run 'sriptype genotype' first."
+            "Run 'scgt genotype' first."
         )
 
     # Validate and read genotype files
@@ -294,7 +294,7 @@ def run(args):
     mean_s = _mean(all_sample_non_na_counts)
 
     with open(report_file, "w") as frpt:
-        frpt.write("# SRIPType Merge Summary Report\n\n")
+        frpt.write("# scgt Merge Summary Report\n\n")
         frpt.write(f"Total samples\t{num_individuals}\n")
         frpt.write(f"Initial loci\t{total_loci}\n")
         if min_rate > 0:

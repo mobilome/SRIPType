@@ -15,8 +15,8 @@ import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from sriptype_modules.core import validate_threads
-from sriptype_modules.utils import setup_logger
+from scgt_modules.core import validate_threads
+from scgt_modules.utils import setup_logger
 
 logger = setup_logger(__name__)
 

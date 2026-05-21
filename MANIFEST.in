@@ -1,5 +1,5 @@
 include README.md
 include LICENSE
 include requirements.txt
-recursive-include sriptype_modules *.py
-recursive-include sriptype_modules/data *
+recursive-include scgt_modules *.py
+recursive-include scgt_modules/data *

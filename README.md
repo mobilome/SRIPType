@@ -1,10 +1,10 @@
-# SRIPType
+# scgt
 
 A bioinformatics tool for 51k-SINE-RIP chip genotyping.
 
 ## Dependencies
 
-SRIPType requires the following external tools to be installed and available in `PATH`:
+scgt requires the following external tools to be installed and available in `PATH`:
 
 - [FLASh](https://ccb.jhu.edu/software/FLASH/) — paired-end read merging
 - [pigz](https://zlib.net/pigz/) — parallel gzip compression/decompression
@@ -18,49 +18,49 @@ SRIPType requires the following external tools to be installed and available in 
 ### Conda (recommended)
 
 ```bash
-conda install -c bioconda sriptype
+conda install -c bioconda scgt
 ```
 
 ### pip
 
 ```bash
-pip install sriptype
+pip install scgt
 ```
 
-> **Note:** pip only installs SRIPType itself; the external tools listed above must be installed separately. Installing via Conda handles all dependencies automatically.
+> **Note:** pip only installs scgt itself; the external tools listed above must be installed separately. Installing via Conda handles all dependencies automatically.
 
 ### From source
 
 ```bash
-git clone https://github.com/mobilome/SRIPType.git
-cd SRIPType
+git clone https://github.com/mobilome/scgt.git
+cd scgt
 pip install .
 ```
 
 ### Docker
 
 ```bash
-docker build -t sriptype .
-docker run --rm -v $(pwd):/data sriptype mkdb -i /data/input_dir -o /data/blast_db -j 4 -t 4
+docker build -t scgt .
+docker run --rm -v $(pwd):/data scgt mkdb -i /data/input_dir -o /data/blast_db -j 4 -t 4
 ```
 
 ## Quick start
 
 ```bash
 # Step 1: Build BLAST databases from paired-end data
-sriptype mkdb -i raw_data/ -o blast_db/ -j 4 -t 4
+scgt mkdb -i raw_data/ -o blast_db/ -j 4 -t 4
 
 # Step 2: Run genotyping analysis
-sriptype genotype -i blast_db/ -o genotype_results/ -j 4 -t 4
+scgt genotype -i blast_db/ -o genotype_results/ -j 4 -t 4
 
 # Step 3: Merge per-sample results into a summary matrix
-sriptype merge -i genotype_results/ -o merged_output/
+scgt merge -i genotype_results/ -o merged_output/
 ```
 
 ## Usage
 
 ```
-sriptype [-v] <subcommand> [options]
+scgt [-v] <subcommand> [options]
 ```
 
 ### Subcommands
@@ -76,7 +76,7 @@ sriptype [-v] <subcommand> [options]
 Process paired-end FASTQ files and create per-sample BLAST databases.
 
 ```bash
-sriptype mkdb -i <input_dir> -o <output_dir> -j <jobs> -t <threads>
+scgt mkdb -i <input_dir> -o <output_dir> -j <jobs> -t <threads>
 ```
 
 | Option | Description |
@@ -92,12 +92,12 @@ sriptype mkdb -i <input_dir> -o <output_dir> -j <jobs> -t <threads>
 Run the RIP-seq genotyping pipeline on each sample.
 
 ```bash
-sriptype genotype -i <mkdb_dir> -o <output_dir> -j <jobs> -t <threads>
+scgt genotype -i <mkdb_dir> -o <output_dir> -j <jobs> -t <threads>
 ```
 
 | Option | Description |
 |--------|-------------|
-| `-i, --mkdb-dir` | Directory produced by `sriptype mkdb` (**required**) |
+| `-i, --mkdb-dir` | Directory produced by `scgt mkdb` (**required**) |
 | `-o, --output-dir` | Output directory for results (**required**) |
 | `-j, --jobs INT` | Number of samples to process in parallel (default: 1) |
 | `-t, --threads INT` | Number of threads per sample (default: 1) |
@@ -108,7 +108,7 @@ sriptype genotype -i <mkdb_dir> -o <output_dir> -j <jobs> -t <threads>
 Merge per-sample genotype results into a unified matrix with summary statistics.
 
 ```bash
-sriptype merge -i <input_dir> -o <output_dir> [--min-rate FLOAT]
+scgt merge -i <input_dir> -o <output_dir> [--min-rate FLOAT]
 ```
 
 | Option | Description |

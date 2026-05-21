@@ -1,16 +1,16 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="sriptype",
+    name="scgt",
     version="0.1.0",
-    packages=find_packages(include=["sriptype_modules", "sriptype_modules.*"]),
+    packages=find_packages(include=["scgt_modules", "scgt_modules.*"]),
     package_data={
-        "sriptype_modules": ["data/*"],
+        "scgt_modules": ["data/*"],
     },
     python_requires=">=3.8",
     entry_points={
         "console_scripts": [
-            "sriptype=sriptype_modules.cli:main",
+            "scgt=scgt_modules.cli:main",
         ],
     },
 )
