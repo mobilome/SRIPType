@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scgt"
-version = "0.1.0"
+version = "1.0.0"
 description = "scgt - SINE-RIP chip genotyper, a bioinformatics tool for 51k-SINE-RIP chip genotyping"
 readme = "README.md"
 license = {text = "MIT"}
